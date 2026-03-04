@@ -1,0 +1,35 @@
+# Secrets and sensitive files
+*.pem
+*.key
+id_rsa
+id_ed25519
+*.p12
+*.pfx
+.env
+.env.*
+secrets/
+private/
+
+# SSH private keys (public keys are fine)
+ssh/id_*
+!ssh/id_*.pub
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Vim swap/backup files
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Editor directories
+.idea/
+.vscode/
+
+# Local machine overrides (not shared)
+shell/.bashrc.local
+shell/.zshrc.local
+git/.gitconfig.local

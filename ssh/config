@@ -1,0 +1,60 @@
+# ~/.ssh/config - SSH client configuration
+# Permissions must be 600: chmod 600 ~/.ssh/config
+
+# ── Global defaults ───────────────────────────────────────────────────────────
+Host *
+    # Reuse existing connections to the same host (faster for multiple sessions)
+    ControlMaster auto
+    ControlPath ~/.ssh/sockets/%r@%h-%p
+    ControlPersist 600              # keep master connection alive for 10 minutes
+
+    # Keep connection alive by sending keepalives every 60s (up to 3 failures)
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+
+    # Automatically add keys to the agent (macOS)
+    AddKeysToAgent yes
+
+    # Prefer the strongest available key exchange / ciphers
+    # (defaults are fine; uncomment to restrict to modern algos)
+    # KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group16-sha512
+    # Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com
+
+# ── Ubuntu desktop ────────────────────────────────────────────────────────────
+Host ubuntu-desktop
+    HostName 192.168.1.100          # replace with your desktop's LAN IP or hostname
+    User felipe                     # replace with your username on that machine
+    IdentityFile ~/.ssh/id_ed25519  # replace with the key you use for this host
+    Port 22
+
+# Shorter alias for the same host
+Host desktop
+    Hostname ubuntu-desktop
+
+# ── Proxmox server ────────────────────────────────────────────────────────────
+Host proxmox
+    HostName 192.168.1.10           # replace with your Proxmox server's IP
+    User root                       # Proxmox typically uses root; or create a dedicated user
+    IdentityFile ~/.ssh/id_ed25519
+    Port 22
+
+# ── Jump host / bastion pattern ───────────────────────────────────────────────
+# Route connections to internal hosts through a bastion/jump server
+# Host internal-server
+#     HostName 10.0.0.50
+#     User deploy
+#     IdentityFile ~/.ssh/id_ed25519
+#     ProxyJump bastion              # must have a Host block named "bastion"
+
+# Host bastion
+#     HostName bastion.example.com
+#     User ops
+#     IdentityFile ~/.ssh/id_ed25519
+
+# ── GitHub ────────────────────────────────────────────────────────────────────
+Host github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+    # Uncomment if port 22 is blocked on your network:
+    # Hostname ssh.github.com
+    # Port 443

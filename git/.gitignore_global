@@ -1,0 +1,47 @@
+# Global gitignore - applied to all repos
+# Set via: git config --global core.excludesFile ~/.gitignore_global
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# ── Linux ─────────────────────────────────────────────────────────────────────
+*~
+.directory
+.Trash-*
+
+# ── Editors ───────────────────────────────────────────────────────────────────
+# Vim
+*.swp
+*.swo
+.netrwhist
+Session.vim
+
+# JetBrains (PyCharm, IntelliJ, etc.)
+.idea/
+
+# VS Code
+.vscode/
+
+# Emacs
+\#*\#
+.\#*
+
+# ── Build artifacts ───────────────────────────────────────────────────────────
+*.pyc
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+*.class
+*.o
+*.so
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example

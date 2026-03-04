@@ -1,0 +1,122 @@
+# ~/.gitconfig - global git configuration
+# Machine-specific overrides go in ~/.gitconfig.local (not tracked in git)
+
+[include]
+    # Load local overrides (name, email, signing key, work config, etc.)
+    path = ~/.gitconfig.local
+
+[core]
+    editor = vim
+    # Smarter whitespace handling
+    whitespace = trailing-space,space-before-tab
+    # Global gitignore for editor/OS noise (e.g., .DS_Store, *.swp)
+    excludesFile = ~/.gitignore_global
+    # Faster status on large repos (Linux only; ignored on macOS)
+    fsmonitor = false
+    # Show unicode filenames instead of escaping them
+    quotePath = false
+    # Improve performance on repos with many files
+    preloadindex = true
+
+[init]
+    # Default branch name for new repos
+    defaultBranch = main
+
+[pull]
+    # Always rebase instead of merge on pull (keeps history linear)
+    rebase = true
+
+[push]
+    # Only push the current branch, not all matching branches
+    default = current
+    # Automatically set upstream on first push (no need for -u)
+    autoSetupRemote = true
+
+[fetch]
+    # Remove remote-tracking branches that no longer exist on the remote
+    prune = true
+
+[rebase]
+    # Automatically stash/unstash when rebasing with dirty working tree
+    autoStash = true
+
+[merge]
+    # Show original, ours, and theirs in conflict markers (more context)
+    conflictStyle = zdiff3
+    tool = vimdiff
+
+[diff]
+    # Better algorithm for smaller, more readable diffs
+    algorithm = histogram
+    # Show moved lines in a different color
+    colorMoved = default
+
+[status]
+    # Show individual files in untracked directories
+    showUntrackedFiles = all
+
+[log]
+    # Follow file renames in log
+    follow = true
+    # Abbreviate commit hashes
+    abbrevCommit = true
+
+[branch]
+    # Sort branches by most recently used
+    sort = -committerdate
+
+[color]
+    ui = auto
+
+[credential]
+    # Cache credentials in memory for 15 minutes (Linux)
+    helper = cache --timeout=900
+
+[alias]
+    # Pretty log: one line per commit with graph, colors, relative dates
+    lg = log --oneline --graph --decorate --all --color
+
+    # Verbose pretty log with author and date
+    ll = log --pretty=format:"%C(yellow)%h%C(reset) %C(blue)%ad%C(reset) %C(green)%an%C(reset) %s" --date=short
+
+    # Show files changed in the last commit
+    last = log -1 --stat
+
+    # Short status
+    st = status -sb
+
+    # Amend without editing the message
+    amend = commit --amend --no-edit
+
+    # Undo last commit but keep changes staged
+    undo = reset --soft HEAD~1
+
+    # List all aliases
+    aliases = config --get-regexp alias
+
+    # Show who last modified each line of a file
+    blame-short = blame --abbrev=7
+
+    # Clean up merged branches (local only)
+    sweep = "!git branch --merged main | grep -v '\\*\\|main\\|master\\|dev\\|develop' | xargs -r git branch -d"
+
+    # Find commits touching a string
+    find = log -S
+
+    # Stash with a message
+    save = stash push -m
+
+    # Show the root of the current repo
+    root = rev-parse --show-toplevel
+
+    # Show all tags sorted by version
+    tags = tag -l --sort=version:refname
+
+[url "git@github.com:"]
+    # Use SSH instead of HTTPS for GitHub (requires SSH key)
+    # Comment this out if you prefer HTTPS
+    insteadOf = https://github.com/
+
+# Conditional include example: use work config in ~/work/ directory
+# [includeIf "gitdir:~/work/"]
+#     path = ~/.gitconfig.work
