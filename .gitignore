@@ -33,3 +33,26 @@ ssh/id_*
 shell/.bashrc.local
 shell/.zshrc.local
 git/.gitconfig.local
+
+# Claude Code: never commit credentials or session/conversation data
+claude/.credentials.json
+claude/.claude.json
+claude/projects/
+claude/sessions/
+claude/todos/
+claude/history.jsonl
+claude/shell-snapshots/
+claude/cache/
+claude/paste-cache/
+claude/file-history/
+claude/telemetry/
+claude/statsig/
+claude/backups/
+claude/debug/
+claude/ide/
+claude/session-env/
+claude/plugins/
+claude/downloads/
+claude/agent-memory/
+claude/stats-cache.json
+claude/mcp-needs-auth-cache.json
