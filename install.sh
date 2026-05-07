@@ -173,6 +173,16 @@ chmod 600 ~/.ssh/config 2>/dev/null || true
 mkdir -p ~/.docker
 link "$DOTFILES_DIR/docker/config.json"  ~/.docker/config.json
 
+# Claude Code config
+link "$DOTFILES_DIR/claude/CLAUDE.md"                              ~/.claude/CLAUDE.md
+link "$DOTFILES_DIR/claude/settings.json"                          ~/.claude/settings.json
+link "$DOTFILES_DIR/claude/statusline-command.sh"                  ~/.claude/statusline-command.sh
+link "$DOTFILES_DIR/claude/agents/code-improvement-advisor.md"     ~/.claude/agents/code-improvement-advisor.md
+link "$DOTFILES_DIR/claude/skills/review/SKILL.md"                 ~/.claude/skills/review/SKILL.md
+link "$DOTFILES_DIR/claude/skills/verify/SKILL.md"                 ~/.claude/skills/verify/SKILL.md
+link "$DOTFILES_DIR/claude/hooks/validate-destructive.sh"          ~/.claude/hooks/validate-destructive.sh
+chmod +x "$DOTFILES_DIR/claude/statusline-command.sh" "$DOTFILES_DIR/claude/hooks/validate-destructive.sh"
+
 # ── SSH socket directory ───────────────────────────────────────────────────────
 # ControlPath in ssh/config uses ~/.ssh/sockets/; it must exist
 mkdir -p ~/.ssh/sockets
