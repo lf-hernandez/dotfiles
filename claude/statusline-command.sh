@@ -4,14 +4,18 @@ input=$(cat)
 # -- Parse JSON fields --
 model_id=$(echo "$input" | jq -r '.model.id // empty')
 used=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
-used_tokens=$(echo "$input" | jq -r '.context_window.used_tokens // empty')
-total_tokens=$(echo "$input" | jq -r '.context_window.total_tokens // empty')
+in_tok=$(echo "$input" | jq -r '.context_window.total_input_tokens // .context_window.used_tokens // empty')
+out_tok=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+ctx_size=$(echo "$input" | jq -r '.context_window.context_window_size // .context_window.total_tokens // empty')
+used_tokens=$(( ${in_tok:-0} + ${out_tok:-0} ))
+[ "$used_tokens" = "0" ] && used_tokens=""
+total_tokens="$ctx_size"
 cost=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
 cwd=$(echo "$input" | jq -r '.cwd // empty')
 rl5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
 rl7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
-rl5h_reset=$(echo "$input" | jq -r '.rate_limits.five_hour.reset_at // empty')
-rl7d_reset=$(echo "$input" | jq -r '.rate_limits.seven_day.reset_at // empty')
+rl5h_reset=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // .rate_limits.five_hour.reset_at // empty')
+rl7d_reset=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // .rate_limits.seven_day.reset_at // empty')
 
 # Accumulate sections; join with " | " at the end
 sections=()
@@ -29,22 +33,43 @@ fmt_tokens() {
   fi
 }
 
-# Convert an ISO 8601 reset timestamp to "Xh Ym" countdown; prints nothing if unavailable
+# Convert an ISO 8601 reset timestamp to "HH:MM (Xh Ym left)" — local clock + countdown.
+# Adds weekday prefix if the reset is on a different calendar day.
 fmt_reset() {
   local ts="$1"
   [ -z "$ts" ] && return
   local reset_epoch now_epoch secs_left
-  reset_epoch=$(date -d "$ts" +%s 2>/dev/null) || return
+  # Field is Unix epoch seconds (per Claude Code docs); fall back to ISO string parsing.
+  if [[ "$ts" =~ ^[0-9]+$ ]]; then
+    reset_epoch="$ts"
+  else
+    reset_epoch=$(date -d "$ts" +%s 2>/dev/null) || return
+  fi
   now_epoch=$(date +%s)
   secs_left=$(( reset_epoch - now_epoch ))
   [ "$secs_left" -le 0 ] && return
-  local h=$(( secs_left / 3600 ))
-  local m=$(( (secs_left % 3600) / 60 ))
-  if [ "$h" -gt 0 ]; then
-    printf '%dh%02dm' "$h" "$m"
+
+  local today reset_day clock
+  today=$(date +%Y-%m-%d)
+  reset_day=$(date -d "@$reset_epoch" +%Y-%m-%d)
+  if [ "$today" = "$reset_day" ]; then
+    clock=$(date -d "@$reset_epoch" +%H:%M)
   else
-    printf '%dm' "$m"
+    clock=$(date -d "@$reset_epoch" +'%a %H:%M')
   fi
+
+  local d=$(( secs_left / 86400 ))
+  local h=$(( (secs_left % 86400) / 3600 ))
+  local m=$(( (secs_left % 3600) / 60 ))
+  local left
+  if [ "$d" -gt 0 ]; then
+    left=$(printf '%dd%dh' "$d" "$h")
+  elif [ "$h" -gt 0 ]; then
+    left=$(printf '%dh%02dm' "$h" "$m")
+  else
+    left=$(printf '%dm' "$m")
+  fi
+  printf '%s, in %s' "$clock" "$left"
 }
 
 # -- 1. Model name (yellow) --
@@ -77,7 +102,17 @@ if [ -n "$used" ]; then
   total_fmt=$(fmt_tokens "$total_tokens")
   [ -n "$used_fmt" ] && [ -n "$total_fmt" ] && tok_str=" (${used_fmt}/${total_fmt})"
 
-  sections+=("$(printf 'ctx %b[%s]\033[00m %s%%%s' "$bar_color" "$bar" "$bar_pct" "$tok_str")")
+  # Loud warning when context is at a point where recall degrades.
+  # Anthropic's auto-compact triggers around 80%; effective precision slips earlier.
+  # Uses reverse video + bold for guaranteed visibility (blink is suppressed by many terminals).
+  warn_str=""
+  if [ "$bar_pct" -ge 80 ] 2>/dev/null; then
+    warn_str=" \033[01;07;31m ⚠ COMPACT OR /clear NOW \033[00m"
+  elif [ "$bar_pct" -ge 65 ] 2>/dev/null; then
+    warn_str=" \033[01;07;33m ⚠ consider compacting \033[00m"
+  fi
+
+  sections+=("$(printf 'ctx %b[%s]\033[00m %s%%%s%b' "$bar_color" "$bar" "$bar_pct" "$tok_str" "$warn_str")")
 fi
 
 # -- 3-5. Git info (branch, ahead/behind, stash) --
@@ -118,39 +153,49 @@ if [ -n "$git_dir" ]; then
   fi
 fi
 
-# -- 6. Rate limits (show if >= 25%, include reset countdown) --
+# -- 6. Session cost (label + green, only if > $0.00) — kept on line 1 --
+if [ -n "$cost" ]; then
+  nonzero=$(echo "$cost > 0.001" | bc -l 2>/dev/null)
+  if [ "$nonzero" = "1" ]; then
+    cost_fmt=$(printf 'session cost \033[00;32m$%.2f\033[00m' "$cost")
+    sections+=("$cost_fmt")
+  fi
+fi
+
+# -- 7. Rate limits (rendered on a second line so the status bar doesn't overflow) --
 rl_parts=()
-for limit in "5h:$rl5h:$rl5h_reset" "7d:$rl7d:$rl7d_reset"; do
+for limit in "session:$rl5h:$rl5h_reset" "week:$rl7d:$rl7d_reset"; do
   label="${limit%%:*}"
   rest="${limit#*:}"
   pct="${rest%%:*}"
   reset_ts="${rest#*:}"
 
   [ -z "$pct" ] && continue
-  [ "$pct" -ge 25 ] 2>/dev/null || continue
 
   reset_str=$(fmt_reset "$reset_ts")
   if [ -n "$reset_str" ]; then
-    rl_parts+=("${label}:${pct}%(${reset_str})")
+    rl_parts+=("${label} ${pct}% (resets ${reset_str})")
   else
-    rl_parts+=("${label}:${pct}%")
+    rl_parts+=("${label} ${pct}%")
   fi
 done
 if [ "${#rl_parts[@]}" -gt 0 ]; then
-  rl_str=$(IFS=' '; echo "${rl_parts[*]}")
-  sections+=("$(printf '\033[00;31mRL %s\033[00m' "$rl_str")")
-fi
-
-# -- 7. Session cost (green, only if > $0.00) --
-if [ -n "$cost" ]; then
-  nonzero=$(echo "$cost > 0.001" | bc -l 2>/dev/null)
-  if [ "$nonzero" = "1" ]; then
-    cost_fmt=$(printf '$%.2f' "$cost")
-    sections+=("$(printf '\033[00;32m%s\033[00m' "$cost_fmt")")
+  rl_str=$(IFS=' • '; echo "${rl_parts[*]}")
+  # Color based on highest pct
+  max_pct=0
+  [ -n "$rl5h" ] && [ "$rl5h" -gt "$max_pct" ] 2>/dev/null && max_pct=$rl5h
+  [ -n "$rl7d" ] && [ "$rl7d" -gt "$max_pct" ] 2>/dev/null && max_pct=$rl7d
+  if [ "$max_pct" -ge 80 ] 2>/dev/null; then
+    rl_color='\033[00;31m'
+  elif [ "$max_pct" -ge 50 ] 2>/dev/null; then
+    rl_color='\033[00;33m'
+  else
+    rl_color='\033[00;32m'
   fi
+  usage_line=$(printf '%bUsage: %s\033[00m' "$rl_color" "$rl_str")
 fi
 
-# -- Join sections with " | " and print --
+# -- Join sections with " | " for line 1, then print usage on line 2 --
 out=""
 for s in "${sections[@]}"; do
   if [ -z "$out" ]; then
@@ -160,3 +205,4 @@ for s in "${sections[@]}"; do
   fi
 done
 printf '%b' "$out"
+[ -n "${usage_line:-}" ] && printf '\n%b' "$usage_line"
