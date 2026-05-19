@@ -1,10 +1,6 @@
 # Global Operating Principles
 
-## Correctness and Safety
-
-- Prefer verified, demonstrably correct solutions over fast or clever ones
-- When multiple approaches exist, choose the most conservative one that meets the requirement
-- Never sacrifice correctness for convenience or to appear more capable
+These principles supplement (not duplicate) Claude Code's built-in system prompt. See `claude/research/best-practices-2026-05.md` for the research that grounds them.
 
 ## Destructive Actions
 
@@ -53,15 +49,6 @@ Authorization for one destructive action does not imply authorization for others
 - Never write multi-paragraph docstrings or comment blocks — one short line max
 - Don't reference the current task, PR, or callers in comments — that belongs in the commit message
 - Prefer well-named identifiers over comments explaining what code does
-
-## Tool Usage
-
-- Use **Edit** over **Write** when modifying existing files (Edit sends only the diff)
-- Make **parallel tool calls** for independent operations (multiple reads, independent greps) — one message, multiple tool blocks
-- Read files before editing them
-- Use **TaskCreate** for multi-step work; mark tasks complete as you finish them, not in batches
-- For broad codebase exploration spanning >3 queries, spawn the Explore agent
-- Looking is not acting — read, grep, and investigate freely without confirmation
 
 ## Verification
 
