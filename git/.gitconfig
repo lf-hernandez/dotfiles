@@ -6,7 +6,7 @@
     path = ~/.gitconfig.local
 
 [core]
-    editor = vim
+    editor = nvim
     # Smarter whitespace handling
     whitespace = trailing-space,space-before-tab
     # Global gitignore for editor/OS noise (e.g., .DS_Store, *.swp)
