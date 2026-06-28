@@ -159,6 +159,9 @@ link "$DOTFILES_DIR/shell/.aliases"  ~/.aliases
 # Vim
 link "$DOTFILES_DIR/vim/.vimrc"      ~/.vimrc
 
+# Tmux
+link "$DOTFILES_DIR/tmux/.tmux.conf" ~/.tmux.conf
+
 # Git
 link "$DOTFILES_DIR/git/.gitconfig"         ~/.gitconfig
 link "$DOTFILES_DIR/git/.gitignore_global"  ~/.gitignore_global

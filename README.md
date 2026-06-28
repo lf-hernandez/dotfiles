@@ -37,6 +37,7 @@ bash install.sh
 ~/.zshrc            → shell/.zshrc
 ~/.aliases          → shell/.aliases
 ~/.vimrc            → vim/.vimrc
+~/.tmux.conf        → tmux/.tmux.conf
 ~/.gitconfig        → git/.gitconfig
 ~/.gitignore_global → git/.gitignore_global
 ~/.ssh/config       → ssh/config
@@ -54,6 +55,8 @@ dotfiles/
 │   └── .aliases        # Shared aliases (sourced by both shells)
 ├── vim/
 │   └── .vimrc          # Vim config with vim-plug plugins
+├── tmux/
+│   └── .tmux.conf      # Tmux config (vi keys, splits, status bar)
 ├── git/
 │   ├── .gitconfig      # Global git config (no personal info)
 │   └── .gitignore_global
